@@ -1,5 +1,8 @@
 from datetime import datetime
 import hashlib
+import io
+
+from pypdf import PdfReader, PdfWriter
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -35,9 +38,49 @@ def reference_input(title, key, setting):
     return data,name
 
 
+def merge_pdfs(files):
+    """Une los archivos en orden y conserva intacto un PDF único."""
+    if not files:
+        return None
+    if sum(len(data) for name, data in files) > 40 * 1024 * 1024:
+        raise ValueError("Los PDF cargados superan el límite total de 40 MB.")
+    writer = PdfWriter()
+    total_pages = 0
+    try:
+        for name, data in files:
+            if not data.startswith(b"%PDF-"):
+                raise ValueError(f"El archivo {name} no es un PDF válido.")
+            try:
+                reader = PdfReader(io.BytesIO(data))
+                if reader.is_encrypted:
+                    raise ValueError(f"El archivo {name} tiene contraseña. Carga una copia sin contraseña.")
+                count = len(reader.pages)
+                if not count:
+                    raise ValueError(f"El archivo {name} no contiene páginas.")
+                total_pages += count
+                if total_pages > 100:
+                    raise ValueError("Los PDF cargados superan el límite total de 100 páginas.")
+                if len(files) > 1:
+                    writer.append(reader, import_outline=False)
+            except ValueError:
+                raise
+            except Exception as exc:
+                raise ValueError(f"No se pudo leer {name}. Comprueba que el PDF esté completo y sin contraseña.") from exc
+        if len(files) == 1:
+            return files[0][1]
+        output = io.BytesIO()
+        writer.write(output)
+        result = output.getvalue()
+        if len(result) > 40 * 1024 * 1024:
+            raise ValueError("El PDF consolidado supera el límite de 40 MB.")
+        return result
+    finally:
+        writer.close()
+
+
 st.title("ValerIA")
 st.subheader("Revisión de cuentas de cobro")
-st.write("Carga el PDF consolidado. Recibirás alertas con las páginas y los datos que debes revisar.")
+st.write("Carga uno o varios PDF. ValerIA los unirá para revisar la cuenta de cobro y señalar las páginas y los datos que debes verificar.")
 
 with st.sidebar:
     st.header("Bases de referencia")
@@ -50,13 +93,27 @@ with st.sidebar:
         st.caption("La vigencia bancaria usa la fecha de la cuenta, si existe, y esta fecha como alternativa.")
     st.caption(f"Reglas: {RULESET}. Los documentos se procesan en el servidor, sin envío a una API de IA.")
 
-uploaded=st.file_uploader("PDF consolidado de la cuenta de cobro",type=["pdf"],key="account_pdf",
-                          help="Incluye certificado, informe de ejecución, planilla y cuenta de cobro. Hasta 40 MB y 100 páginas.")
-pdf_data=uploaded.getvalue() if uploaded is not None else None
+uploaded=st.file_uploader("Archivos PDF de la cuenta de cobro",type=["pdf"],key="account_pdfs",
+                          accept_multiple_files=True,max_upload_size=40,
+                          help="Carga un PDF consolidado o varios soportes. Límite total: 40 MB y 100 páginas.")
+files=[(file.name,file.getvalue()) for file in uploaded]
+pdf_name=files[0][0] if len(files)==1 else "expediente_consolidado.pdf"
+pdf_data=None
+if files:
+    st.caption("Los archivos se unirán en el orden mostrado. Para cambiarlo, retíralos y vuelve a agregarlos en el orden deseado.")
+    for index,(name,data) in enumerate(files,1):
+        st.text(f"{index}. {name}")
+    try:
+        pdf_data=merge_pdfs(files)
+    except ValueError as exc:
+        st.error(str(exc))
+if pdf_data is not None and len(files)>1:
+    st.download_button("Descargar PDF consolidado",pdf_data,file_name=pdf_name,mime="application/pdf",key="merged_pdf_download")
+
 fingerprint=hashlib.sha256()
 for block in (pdf_data or b"",crp_data or b"",monthly_data or b"",str(review_date).encode(),str(ocr).encode()):
     fingerprint.update(len(block).to_bytes(8,"big")); fingerprint.update(block)
-fingerprint.update((crp_name+monthly_name+(uploaded.name if uploaded else "")).encode())
+fingerprint.update((crp_name+monthly_name+repr([name for name,data in files])).encode())
 current=fingerprint.hexdigest()
 if st.session_state.get("review_fingerprint") != current:
     st.session_state.pop("review",None)
@@ -67,7 +124,7 @@ if st.button("Revisar cuenta de cobro",type="primary",disabled=pdf_data is None)
         with st.spinner("Leyendo documentos y contrastando las reglas…"):
             crp=read_reference(crp_data,crp_name) if crp_data is not None else None
             monthly=read_reference(monthly_data,monthly_name) if monthly_data is not None else None
-            result=analyze(pdf_data,uploaded.name,crp,monthly,review_date,ocr)
+            result=analyze(pdf_data,pdf_name,crp,monthly,review_date,ocr)
             st.session_state.review=result
             st.session_state.review_fingerprint=current
     except ValueError as exc:
@@ -77,7 +134,7 @@ if st.button("Revisar cuenta de cobro",type="primary",disabled=pdf_data is None)
 
 review=st.session_state.get("review")
 if review is None:
-    st.info("El PDF debe reunir los cuatro documentos. Para la primera cuenta, incluye también los soportes adicionales.")
+    st.info("Los PDF cargados deben reunir certificado, informe de ejecución, planilla y cuenta de cobro. Para la primera cuenta, incluye también los soportes adicionales.")
     with st.expander("Qué revisa ValerIA"):
         st.write("Períodos, identidad, contrato, valores, consecutivos, planilla, aportes, supervisor, códigos CRP, vigencia, avance y soportes de primera cuenta.")
         st.write("Las firmas y la coherencia del contenido requieren inspección humana. La aplicación no da por cumplido un campo que no puede leer.")
@@ -106,10 +163,10 @@ with pdf_tab:
     page=st.selectbox("Página del PDF",[p.number for p in review.pages],
                       format_func=lambda n:f"Página {n} · {LABELS[review.pages[n-1].kind]}")
     try: st.image(render_page(pdf_data,page),caption=f"Página {page}",width="stretch")
-    except Exception: st.error("No se pudo mostrar esta página. Descarga el PDF original para revisarla.")
+    except Exception: st.error("No se pudo mostrar esta página. Descarga el PDF analizado para revisarla.")
     with st.expander("Texto detectado en esta página"):
         st.text(review.pages[page-1].text or "Sin texto legible.")
-    st.download_button("Descargar PDF original",pdf_data,file_name="expediente_original.pdf",mime="application/pdf")
+    st.download_button("Descargar PDF analizado",pdf_data,file_name=pdf_name,mime="application/pdf")
 
 st.subheader("Descargar resultados")
 downloads=st.columns(3)
