@@ -1,14 +1,14 @@
 # ValerIA · Validación de cuentas de cobro
 
-Aplicativo Streamlit para cargar **un PDF consolidado** y obtener alertas con la regla, los valores extraídos, la página y la acción de revisión. Implementa el instructivo **VF_VALIDACION 2 26052026** como reglas de Python, sin necesidad de una API de IA.
+Aplicativo Streamlit para cargar **uno o varios PDF**, unirlos en memoria y obtener alertas con la regla, los valores extraídos, la página y la acción de revisión. Implementa el instructivo **VF_VALIDACION 2 26052026** como reglas de Python, sin necesidad de una API de IA.
 
 ## Uso
 
 1. Cargar el listado CRP en la barra lateral (XLSX o CSV). Es una referencia privada de la sesión.
 2. Opcionalmente, cargar la base de valor mensual de los contratistas.
-3. Cargar el PDF que contiene certificado de cumplimiento F1_P2_F, informe F1_P10_C, planilla PILA y cuenta de cobro.
+3. Cargar uno o varios PDF que reúnan certificado de cumplimiento F1_P2_F, informe F1_P10_C, planilla PILA y cuenta de cobro. Se unen en el orden mostrado; para cambiarlo, retirar los archivos y agregarlos en el orden deseado. Se puede descargar el PDF consolidado antes de analizarlo.
 4. Pulsar **Revisar cuenta de cobro**.
-5. Consultar **Alertas y evidencia**, la tabla completa y las páginas originales. Descargar el reporte TXT, CSV o JSON.
+5. Consultar **Todas las validaciones** y **Consultar PDF**. Descargar el PDF analizado y el reporte TXT, CSV o JSON.
 
 La falta de una base no bloquea el análisis: las reglas que dependen de ella quedan como **REVISAR**. Un archivo que contiene solo un análisis anterior no sustituye el expediente original.
 
@@ -68,7 +68,7 @@ documento,nombre,contrato,valor mensual
 
 Los PDF y las bases nominales no forman parte del repositorio. Las cargas se procesan en memoria por sesión, sin caché global ni envío a servicios externos de IA. OCR utiliza archivos temporales de una página. Los reportes contienen evidencia del expediente y los descarga únicamente la sesión que lo revisa. La instalación y sus controles de acceso corresponden al administrador del despliegue.
 
-Límites: PDF 40 MB, 100 páginas, hasta 15 páginas OCR, tiempo total de lectura 180 segundos. Las páginas que exceden los límites de texto u OCR generan una advertencia. Las bases admiten hasta 10 MB, 30.000 filas y 100 columnas por hoja. Cambiar el PDF, las bases o las opciones invalida el resultado anterior.
+Límites: 40 MB y 100 páginas en total entre los PDF cargados y en el consolidado, hasta 15 páginas OCR, tiempo total de lectura 180 segundos. Las páginas que exceden los límites de texto u OCR generan una advertencia. Las bases admiten hasta 10 MB, 30.000 filas y 100 columnas por hoja. Cambiar el PDF, las bases o las opciones invalida el resultado anterior.
 
 ## Pruebas
 
