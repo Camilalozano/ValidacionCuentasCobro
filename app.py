@@ -87,8 +87,7 @@ with st.sidebar:
     secop_url=st.text_input("Ruta PAR de la base SECOP",value=secret("ORACLE_PAR_URL"),type="password",help="Consulta automática por contrato del informe. El enlace no se incluye en los reportes.")
     st.caption("SECOP prima sobre los PDF. Honorarios inferidos: referencia orientativa; alerta si la diferencia supera el 10 %.")
     crp_data,crp_name=reference_input("Listado CRP (Excel o CSV)","crp_upload","CRP_PATH")
-    monthly_data,monthly_name=reference_input("Valor mensual de contratistas (opcional)","monthly_upload","MONTHLY_PATH")
-    st.caption("Sin una base, su validación queda como REVISAR. El valor del CRP no sustituye los honorarios mensuales.")
+    st.caption("Sin la base CRP, su validación queda como REVISAR. El valor mensual orientativo se consulta automáticamente en SECOP.")
     with st.expander("Opciones de lectura"):
         ocr=st.checkbox("Leer páginas escaneadas con OCR",value=True)
         review_date=st.date_input("Fecha de revisión",value=datetime.now(ZoneInfo("America/Bogota")).date())
@@ -113,9 +112,9 @@ if pdf_data is not None and len(files)>1:
     st.download_button("Descargar PDF consolidado",pdf_data,file_name=pdf_name,mime="application/pdf",key="merged_pdf_download")
 
 fingerprint=hashlib.sha256()
-for block in (pdf_data or b"",crp_data or b"",monthly_data or b"",str(review_date).encode(),str(ocr).encode(),secop_url.encode()):
+for block in (pdf_data or b"",crp_data or b"",str(review_date).encode(),str(ocr).encode(),secop_url.encode()):
     fingerprint.update(len(block).to_bytes(8,"big")); fingerprint.update(block)
-fingerprint.update((crp_name+monthly_name+repr([name for name,data in files])).encode())
+fingerprint.update((crp_name+repr([name for name,data in files])).encode())
 current=fingerprint.hexdigest()
 if st.session_state.get("review_fingerprint") != current:
     st.session_state.pop("review",None)
@@ -125,8 +124,7 @@ if st.button("Revisar cuenta de cobro",type="primary",disabled=pdf_data is None)
     try:
         with st.spinner("Leyendo documentos y contrastando las reglas…"):
             crp=read_reference(crp_data,crp_name) if crp_data is not None else None
-            monthly=read_reference(monthly_data,monthly_name) if monthly_data is not None else None
-            result=analyze(pdf_data,pdf_name,crp,monthly,review_date,ocr,secop_url=secop_url)
+            result=analyze(pdf_data,pdf_name,crp=crp,review_date=review_date,ocr=ocr,secop_url=secop_url)
             st.session_state.review=result
             st.session_state.review_fingerprint=current
     except ValueError as exc:
@@ -158,7 +156,7 @@ with summary_tab:
     st.dataframe([{"Regla":f.rule,"Validación":f.title,"Estado":f.status,"Tipo":f.category,"Detalle":f.message}
                   for f in review.findings],hide_index=True,width="stretch")
     st.caption("La fórmula de aportes reproduce el instructivo: 40% × (12,5% + 16% + 0,522%). Requiere revisión para excepciones, mínimos, topes o riesgos diferentes.")
-    st.caption("Honorarios: mes completo = 30 días; período parcial dentro de un mes = días comerciales inclusivos, con día máximo 30. La base mensual debe identificar explícitamente el honorario.")
+    st.caption("Honorarios: mes completo = 30 días; período parcial dentro de un mes = días comerciales inclusivos, con día máximo 30. El valor mensual de SECOP es orientativo; la regla 21 muestra su comparación.")
 with pdf_tab:
     st.dataframe([{"Documento":LABELS[k],"Páginas":", ".join(map(str,d.pages)) or "No identificado"}
                   for k,d in review.documents.items()],hide_index=True,width="stretch")
