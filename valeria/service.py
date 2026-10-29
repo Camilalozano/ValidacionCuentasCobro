@@ -10,15 +10,20 @@ from .extract import extract_documents
 from .models import Review
 from .pdf import read_pdf
 from .rules import evaluate
+from .secop import lookup, compare_with_base
 
 
-def analyze(data, filename, crp=None, monthly=None, review_date=None, ocr=True):
+def analyze(data, filename, crp=None, monthly=None, review_date=None, ocr=True, secop_url=None):
     pages = read_pdf(data, ocr=ocr)
     docs = extract_documents(pages)
     now = datetime.now(ZoneInfo("America/Bogota"))
-    findings = evaluate(docs,pages,crp,monthly,review_date or now.date())
+    base = lookup(secop_url, docs["informe"].get("contract"))
+    findings = evaluate(docs,pages,crp,monthly,review_date or now.date(), secop=base)
+    findings = [f for f in findings if f.rule != "10"] + compare_with_base(docs, base)
+    findings.sort(key=lambda f: int(f.rule))
     return Review(filename,hashlib.sha256(data).hexdigest(),now.isoformat(),RULESET,docs,pages,findings,
                   {"crp":crp.name if crp else "No cargada","valor_mensual":monthly.name if monthly else "No cargada",
+                   "secop": "Base SECOP · Oracle; " + (base.get("error") or "consulta " + base.get("consulted_at", "")),
                    "version":VERSION,"fecha_revision":str(review_date or now.date())})
 
 
