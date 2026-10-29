@@ -140,7 +140,7 @@ if review is None:
     with st.expander("Qué revisa ValerIA"):
         st.write("Períodos, identidad, contrato, valores, consecutivos, planilla, aportes, supervisor, códigos CRP, vigencia, avance y soportes de primera cuenta.")
         st.write("Las firmas y la coherencia del contenido requieren inspección humana. La aplicación no da por cumplido un campo que no puede leer.")
-        st.caption("Hay 18 reglas en el instructivo, numeradas 1–16, 18 y 19. Se conserva esa numeración.")
+        st.caption("Se conserva la numeración del instructivo y se excluye la regla 14. Las reglas 20 y 21 contrastan la base SECOP.")
     st.stop()
 
 alerts=[f for f in review.findings if f.status=="REVISAR"]
