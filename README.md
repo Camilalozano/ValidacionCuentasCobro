@@ -90,7 +90,7 @@ Cada revisión descarga el CSV de Oracle (máximo 50 MB y 30 segundos de espera 
 
 - Regla 10: supervisor del certificado y del informe frente a `nombre_supervisor (contratos_electronicos)`. La inspección de firmas permanece en la regla 19.
 - Regla 20: nombre y documento del contratista, fechas contractuales y objeto frente a la base. Se muestran ambos valores y prima SECOP. El objeto se compara por texto normalizado; una diferencia de redacción exige revisión humana.
-- Regla 21: honorario mensual inferido, siempre identificado como orientativo. Se compara proporcionalmente a los días comerciales del período de la cuenta; una diferencia absoluta superior al 10 % genera alerta. Esta comparación no reemplaza la regla 16 ni valida el honorario exacto.
+- Regla 16: honorario mensual inferido, siempre identificado como orientativo. Se compara proporcionalmente a los días comerciales del período de la cuenta; una diferencia absoluta superior al 10 % genera alerta. Esta comparación es aproximada y no valida el honorario exacto. La anterior regla 21 se integra en la 16 para evitar duplicados.
 - Regla 12: usa prioritariamente las fechas válidas de SECOP para el avance y la vigencia.
 - Nombres: se ignoran caja, tildes, puntuación y orden. Se admite una omisión cuando quedan al menos tres componentes coincidentes; diferencias de escritura u otras ambigüedades requieren revisión.
 
