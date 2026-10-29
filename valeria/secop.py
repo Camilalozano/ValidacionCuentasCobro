@@ -23,7 +23,8 @@ COLUMNS = {
 }
 
 def reference_key(value):
-    return re.sub(r'[\s\-\u2010-\u2015\u2212]+', '', str(value).upper())
+    key = re.sub(r'[\s\-\u2010-\u2015\u2212]+', '', str(value).upper())
+    return key[6:] if key.startswith('ATENEA') else key
 
 def text(value):
     value = str(value or '').strip()
