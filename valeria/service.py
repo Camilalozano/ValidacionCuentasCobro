@@ -23,10 +23,10 @@ def analyze(data, filename, crp=None, monthly=None, review_date=None, ocr=True, 
         contract_reference = "ATENEA-" + contract_reference
     base = lookup(secop_url, contract_reference)
     findings = evaluate(docs,pages,crp,monthly,review_date or now.date(), secop=base)
-    findings = [f for f in findings if f.rule != "10"] + compare_with_base(docs, base)
+    findings = [f for f in findings if f.rule not in {"10", "16"}] + compare_with_base(docs, base)
     findings.sort(key=lambda f: int(f.rule))
     return Review(filename,hashlib.sha256(data).hexdigest(),now.isoformat(),RULESET,docs,pages,findings,
-                  {"crp":crp.name if crp else "No cargada","valor_mensual":monthly.name if monthly else "No cargada",
+                  {"crp":crp.name if crp else "No cargada","valor_mensual":"SECOP · valor_pago_mensual_inferido (orientativo)",
                    "secop": "Base SECOP · Oracle; " + (base.get("error") or "consulta " + base.get("consulted_at", "")),
                    "version":VERSION,"fecha_revision":str(review_date or now.date())})
 
