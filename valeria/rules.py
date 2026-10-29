@@ -197,32 +197,6 @@ def evaluate(docs, pages, crp=None, monthly=None, review_date=None, secop=None):
         add(13,"Soportes de primera cuenta",False,"No es posible descartar que sea la primera cuenta.",
             "Confirmar el consecutivo antes de excluir los ocho soportes adicionales.",[(c,"invoice_number"),(q,"invoice_number")])
 
-    consistency=[]
-    for d in (c,r,q):
-        issued=parse_date(d.get("issued") or ""); last=parse_date(d.get("period_end") or "")
-        if issued and last and issued<last:
-            consistency.append(f"{LABELS[d.kind]}: fecha de expedición/presentación {issued} anterior al cierre del período {last}.")
-        for key, facts in d.fields.items():
-            if key not in {"budget","cdp","crp","internal_code","crp_date"} and len(d.values(key))>1:
-                consistency.append(f"{LABELS[d.kind]}: se encontraron varios valores para {key}; podría haber más de una cuenta o un dato contradictorio.")
-    if q.get("amount_words") and q.get("amount") and Decimal(q.get("amount_words")) != Decimal(q.get("amount")):
-        consistency.append(f"Cuenta: monto en letras {pesos(q.get('amount_words'))} distinto al numérico {pesos(q.get('amount'))}.")
-    contract_id=c.get("contract")
-    if contract_id and start and start.year<int(contract_id.split("-")[-1]):
-        consistency.append(f"Inicio {start} anterior al año del contrato {contract_id}. Confirmar la fecha original.")
-    crp_date=parse_date(c.get("crp_date") or "")
-    if contract_id and crp_date and crp_date.year<int(contract_id.split("-")[-1]):
-        consistency.append(f"Fecha CRP {crp_date} anterior al año del contrato. Contrastar el registro presupuestal.")
-    if start and end:
-        for d in (c,r,q):
-            first=parse_date(d.get("period_start") or ""); last=parse_date(d.get("period_end") or "")
-            if first and last and (first<start or last>end): consistency.append(f"{LABELS[d.kind]}: período fuera de vigencia.")
-    add(14,"Consistencia integral del expediente",False,
-        " ".join(consistency) if consistency else "Sin contradicciones adicionales detectadas por las comprobaciones automáticas. La correspondencia semántica y las actividades requieren revisión humana.",
-        "Revisar los hallazgos y contrastar objeto, actividades, soportes y contenido completo del expediente.",
-        [(q,"amount_words"),(q,"amount"),(c,"start"),(c,"crp_date"),(r,"issued")],
-        "Inconsistencia" if consistency else "Revisión de contenido")
-
     invoice_end=parse_date(q.get("period_end") or "")
     pila_months=[parse_date((p.get(k)+"-01") if p.get(k) else "") for k in ("pension_month","health_month")]
     if invoice_end and all(pila_months):
