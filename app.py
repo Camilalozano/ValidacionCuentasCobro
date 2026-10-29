@@ -12,7 +12,7 @@ from valeria import RULESET
 from valeria.models import LABELS
 from valeria.pdf import render_page
 from valeria.references import read_reference
-from valeria.service import analyze, report_text, report_json, report_csv
+from valeria.service import analyze, report_text, report_csv
 
 st.set_page_config(page_title="ValerIA · Cuentas de cobro",page_icon="📋",layout="wide")
 
@@ -169,10 +169,9 @@ with pdf_tab:
     st.download_button("Descargar PDF analizado",pdf_data,file_name=pdf_name,mime="application/pdf")
 
 st.subheader("Descargar resultados")
-downloads=st.columns(3)
+downloads=st.columns(2)
 downloads[0].download_button("Reporte de revisión (.txt)",report_text(review),"revision_valeria.txt","text/plain; charset=utf-8")
 downloads[1].download_button("Tabla de alertas y resultados (.csv)",report_csv(review),"revision_valeria.csv","text/csv")
-downloads[2].download_button("Evidencia estructurada (.json)",report_json(review),"revision_valeria.json","application/json")
 st.caption("Los archivos y resultados permanecen en la memoria de esta sesión. No se guardan expedientes en el repositorio ni se usa una caché compartida entre usuarios.")
 if st.button("Borrar resultado de esta sesión"):
     st.session_state.pop("review",None)
