@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 import streamlit as st
 
 from valeria import RULESET
-from valeria.models import LABELS, FIELD_LABELS
+from valeria.models import LABELS
 from valeria.pdf import render_page
 from valeria.references import read_reference
 from valeria.service import analyze, report_text, report_json, report_csv
@@ -94,25 +94,7 @@ cols[2].metric("No aplica",len(na))
 cols[3].metric("Páginas",len(review.pages))
 st.warning("Revisión pendiente. Las alertas orientan la verificación; este resultado no autoriza el pago.")
 
-alerts_tab,summary_tab,pdf_tab=st.tabs(["Alertas y evidencia","Todas las validaciones","Consultar PDF"])
-with alerts_tab:
-    categories=sorted({f.category for f in alerts})
-    selected=st.multiselect("Tipo de alerta",categories,default=categories)
-    for finding in alerts:
-        if finding.category not in selected: continue
-        with st.expander(f"{finding.rule} · {finding.title} · {finding.category}",expanded=finding.category=="Inconsistencia"):
-            st.warning(finding.message.replace("$",r"\$"))
-            st.write("**Qué revisar:** "+finding.action)
-            if finding.evidence:
-                st.caption("Evidencia extraída (texto normalizado) y campos no encontrados")
-            for ev in finding.evidence:
-                pages=ev.get("pages",[ev["page"]] if "page" in ev else [])
-                location=ev.get("document",ev.get("source","PDF"))
-                if pages: location+=" · página(s) "+", ".join(map(str,pages))
-                st.text(location+(" · "+FIELD_LABELS.get(ev["field"],ev["field"]) if ev.get("field") else ""))
-                st.text(str(ev.get("value",""))+"\n"+str(ev.get("quote","")))
-                if ev.get("matches"):
-                    st.write("Coincidencias: "+" · ".join(f"{key}: {'sí' if value else 'no'}" for key,value in ev["matches"].items()))
+summary_tab,pdf_tab=st.tabs(["Todas las validaciones","Consultar PDF"])
 with summary_tab:
     st.dataframe([{"Regla":f.rule,"Validación":f.title,"Estado":f.status,"Tipo":f.category,"Detalle":f.message}
                   for f in review.findings],hide_index=True,width="stretch")
