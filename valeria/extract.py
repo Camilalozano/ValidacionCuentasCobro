@@ -90,6 +90,7 @@ def extract_certificate(doc, page, t, layout):
 
 
 def extract_report(doc, page, t):
+    add_match(doc, "object", r"objeto del contrato(?: o convenio)?\s*:?\s*(.*?)\s+obligaciones y/o compromisos", t, page)
     add_match(doc, "name", r"nombre del contratista(?: o)?\s*(?:aliado/asociado/\s*cooperante)?\s*:\s*(.*?)\s+nombre identitario", t, page)
     add_match(doc, "supervisor", r"nombre del supervisor\s*:\s*(.*?)\s+cargo del supervisor", t, page)
     add_dates(doc, "start", rf"fecha (?:acta (?:de )?inicio|de inicio)(?: del contrato)?\s*:\s*({DATE_PATTERN})", t, page)
