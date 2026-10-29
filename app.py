@@ -84,6 +84,8 @@ st.write("Carga uno o varios PDF. ValerIA los unirá para revisar la cuenta de c
 
 with st.sidebar:
     st.header("Bases de referencia")
+    secop_url=st.text_input("Ruta PAR de la base SECOP",value=secret("ORACLE_PAR_URL"),type="password",help="Consulta automática por contrato del informe. El enlace no se incluye en los reportes.")
+    st.caption("SECOP prima sobre los PDF. Honorarios inferidos: referencia orientativa; alerta si la diferencia supera el 10 %.")
     crp_data,crp_name=reference_input("Listado CRP (Excel o CSV)","crp_upload","CRP_PATH")
     monthly_data,monthly_name=reference_input("Valor mensual de contratistas (opcional)","monthly_upload","MONTHLY_PATH")
     st.caption("Sin una base, su validación queda como REVISAR. El valor del CRP no sustituye los honorarios mensuales.")
@@ -111,7 +113,7 @@ if pdf_data is not None and len(files)>1:
     st.download_button("Descargar PDF consolidado",pdf_data,file_name=pdf_name,mime="application/pdf",key="merged_pdf_download")
 
 fingerprint=hashlib.sha256()
-for block in (pdf_data or b"",crp_data or b"",monthly_data or b"",str(review_date).encode(),str(ocr).encode()):
+for block in (pdf_data or b"",crp_data or b"",monthly_data or b"",str(review_date).encode(),str(ocr).encode(),secop_url.encode()):
     fingerprint.update(len(block).to_bytes(8,"big")); fingerprint.update(block)
 fingerprint.update((crp_name+monthly_name+repr([name for name,data in files])).encode())
 current=fingerprint.hexdigest()
@@ -124,7 +126,7 @@ if st.button("Revisar cuenta de cobro",type="primary",disabled=pdf_data is None)
         with st.spinner("Leyendo documentos y contrastando las reglas…"):
             crp=read_reference(crp_data,crp_name) if crp_data is not None else None
             monthly=read_reference(monthly_data,monthly_name) if monthly_data is not None else None
-            result=analyze(pdf_data,pdf_name,crp,monthly,review_date,ocr)
+            result=analyze(pdf_data,pdf_name,crp,monthly,review_date,ocr,secop_url=secop_url)
             st.session_state.review=result
             st.session_state.review_fingerprint=current
     except ValueError as exc:
