@@ -138,7 +138,7 @@ if review is None:
     with st.expander("Qué revisa ValerIA"):
         st.write("Períodos, identidad, contrato, valores, consecutivos, planilla, aportes, supervisor, códigos CRP, vigencia, avance y soportes de primera cuenta.")
         st.write("Las firmas y la coherencia del contenido requieren inspección humana. La aplicación no da por cumplido un campo que no puede leer.")
-        st.caption("Se conserva la numeración del instructivo y se excluye la regla 14. Las reglas 20 y 21 contrastan la base SECOP.")
+        st.caption("Se conserva la numeración del instructivo y se excluye la regla 14. Las reglas 16 y 20 contrastan la base SECOP.")
     st.stop()
 
 alerts=[f for f in review.findings if f.status=="REVISAR"]
@@ -156,7 +156,7 @@ with summary_tab:
     st.dataframe([{"Regla":f.rule,"Validación":f.title,"Estado":f.status,"Tipo":f.category,"Detalle":f.message}
                   for f in review.findings],hide_index=True,width="stretch")
     st.caption("La fórmula de aportes reproduce el instructivo: 40% × (12,5% + 16% + 0,522%). Requiere revisión para excepciones, mínimos, topes o riesgos diferentes.")
-    st.caption("Honorarios: mes completo = 30 días; período parcial dentro de un mes = días comerciales inclusivos, con día máximo 30. El valor mensual de SECOP es orientativo; la regla 21 muestra su comparación.")
+    st.caption("Honorarios: mes completo = 30 días; período parcial dentro de un mes = días comerciales inclusivos, con día máximo 30. El valor mensual de SECOP es orientativo; la regla 16 muestra su comparación.")
 with pdf_tab:
     st.dataframe([{"Documento":LABELS[k],"Páginas":", ".join(map(str,d.pages)) or "No identificado"}
                   for k,d in review.documents.items()],hide_index=True,width="stretch")
