@@ -81,3 +81,17 @@ Las pruebas usan datos ficticios. Cubren normalización, rangos parciales, aport
 ## Estructura
 
 `app.py`: interfaz. `valeria/pdf.py` y `pdf_worker.py`: lectura aislada y OCR. `extract.py`: clasificación y campos. `references.py`: bases de contraste. `rules.py`: validaciones. `service.py`: análisis y exportación. `tests/`: pruebas de regresión.
+
+## Contraste automático con SECOP
+
+Configurar `ORACLE_PAR_URL` en Secrets de Streamlit. La ruta también puede ingresarse temporalmente en el campo protegido de la barra lateral. Nunca se guarda el enlace PAR en el repositorio ni en los reportes.
+
+Cada revisión descarga el CSV de Oracle (máximo 50 MB y 30 segundos de espera de red) y busca el contrato extraído del informe en `referencia_del_contrato (contratos_electronicos)`. No se usan coincidencias parciales de contrato. Los duplicados idénticos en los campos comparados se consolidan; los contradictorios generan REVISAR. Una falla de conexión, referencia ausente o estructura inválida no interrumpe las demás reglas.
+
+- Regla 10: supervisor del certificado y del informe frente a `nombre_supervisor (contratos_electronicos)`. La inspección de firmas permanece en la regla 19.
+- Regla 20: nombre y documento del contratista, fechas contractuales y objeto frente a la base. Se muestran ambos valores y prima SECOP. El objeto se compara por texto normalizado; una diferencia de redacción exige revisión humana.
+- Regla 21: honorario mensual inferido, siempre identificado como orientativo. Se compara proporcionalmente a los días comerciales del período de la cuenta; una diferencia absoluta superior al 10 % genera alerta. Esta comparación no reemplaza la regla 16 ni valida el honorario exacto.
+- Regla 12: usa prioritariamente las fechas válidas de SECOP para el avance y la vigencia.
+- Nombres: se ignoran caja, tildes, puntuación y orden. Se admite una omisión cuando quedan al menos tres componentes coincidentes; diferencias de escritura u otras ambigüedades requieren revisión.
+
+Los resultados incluyen fecha de consulta, filas y SHA-256 del CSV. No se publican datos personales ni expedientes de prueba.
