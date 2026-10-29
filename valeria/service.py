@@ -2,6 +2,7 @@ import csv
 import hashlib
 import io
 import json
+import re
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -17,7 +18,10 @@ def analyze(data, filename, crp=None, monthly=None, review_date=None, ocr=True, 
     pages = read_pdf(data, ocr=ocr)
     docs = extract_documents(pages)
     now = datetime.now(ZoneInfo("America/Bogota"))
-    base = lookup(secop_url, docs["informe"].get("contract"))
+    contract_reference = docs["informe"].get("contract")
+    if contract_reference and re.fullmatch(r"\d{1,6}-20\d{2}", contract_reference):
+        contract_reference = "ATENEA-" + contract_reference
+    base = lookup(secop_url, contract_reference)
     findings = evaluate(docs,pages,crp,monthly,review_date or now.date(), secop=base)
     findings = [f for f in findings if f.rule != "10"] + compare_with_base(docs, base)
     findings.sort(key=lambda f: int(f.rule))
