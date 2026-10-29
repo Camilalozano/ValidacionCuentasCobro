@@ -101,7 +101,7 @@ def extract_report(doc, page, t):
         ss = section[1]
         # Clave de pago and número de planilla are different identifiers.
         add_match(doc, "pila_number", r"(\d{5,15})\s*\(planilla\)", ss, page)
-        add_match(doc, "pila_number", r"(?:numero de planilla|planilla no\.?)\s*:\s*(\d{5,15})", ss, page)
+        add_match(doc, "pila_number", r"\b(?:numero de planilla|planilla(?:\s+(?:no\.?|numero|n[°º.]))?)\s*[:#-]?\s*(\d{5,15})\b", ss, page)
         dates = re.findall(DATE_PATTERN, ss)
         for raw in dates:
             d = parse_date(raw); doc.add("paid", d.isoformat() if d else "FECHA INVÁLIDA: " + raw, page, ss)
