@@ -102,7 +102,7 @@ def compare_with_base(docs, base):
     if error:
         return [finding('10', 'Supervisor frente a SECOP', [error, 'La firma sigue pendiente de inspección visual (regla 19).'], missing=True),
                 finding('20', 'Consistencia de documentos con SECOP', [error], missing=True),
-                finding('21', 'Honorarios orientativos de SECOP', [error], missing=True)]
+                finding('16', 'Valor mensual y días de cobro (orientativo SECOP)', [error], missing=True)]
     results = []
     details, evidence, diff, missing = [], [], False, False
     supervisor = record.get('supervisor', '')
@@ -184,7 +184,7 @@ def compare_with_base(docs, base):
         expected = monthly * Decimal(days) / 30
         deviation = abs(amount-expected) / expected * 100
         details.append(f"Mensual orientativo: {pesos(monthly)}. Período: {days} días comerciales. Referencia proporcional: {pesos(expected)}. Cobrado: {pesos(amount)}. Diferencia: {deviation:.2f}%.")
-        results.append(finding('21', 'Honorarios orientativos de SECOP', details, deviation > 10))
+        results.append(finding('16', 'Valor mensual y días de cobro (orientativo SECOP)', details, deviation > 10))
     except (InvalidOperation, ValueError, ZeroDivisionError):
-        results.append(finding('21', 'Honorarios orientativos de SECOP', details + ['No se pudo comparar: falta un valor o período válido.'], missing=True))
+        results.append(finding('16', 'Valor mensual y días de cobro (orientativo SECOP)', details + ['No se pudo comparar: falta un valor o período válido.'], missing=True))
     return results
