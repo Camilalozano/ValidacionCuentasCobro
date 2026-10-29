@@ -17,7 +17,7 @@ OK = "VALIDADO"
 REVIEW = "REVISAR"
 
 
-def evaluate(docs, pages, crp=None, monthly=None, review_date=None):
+def evaluate(docs, pages, crp=None, monthly=None, review_date=None, secop=None):
     crp = crp or Reference(); monthly = monthly or Reference()
     review_date = review_date or date.today()
     results = []
@@ -76,7 +76,14 @@ def evaluate(docs, pages, crp=None, monthly=None, review_date=None):
         month_items, "Inconsistencia" if all(dates+months) and not valid_months else None)
     compare(2,"Cédula del contratista",[(d,"cc") for d in (c,r,p,q)])
     compare(3,"Número de contrato",[(d,"contract") for d in (c,r,q)])
-    compare(4,"Nombre del contratista",[(d,"name") for d in (c,r,p,q)],person)
+    from .secop import name_matches
+    name_values=[d.get("name") for d in (c,r,p,q)]
+    names_complete=all(name_values)
+    names_equal=names_complete and all(name_matches(a,b) for a in name_values for b in name_values)
+    add(4,"Nombre del contratista",names_equal,
+        "; ".join(f"{LABELS[d.kind]}: {d.get('name') or 'NO ENCONTRADO'}" for d in (c,r,p,q)),
+        "Contrastar los nombres incompletos o diferentes." if not names_equal else "",
+        [(d,"name") for d in (c,r,p,q)],"Inconsistencia" if names_complete and not names_equal else None)
     compare(5,"Valor certificado y facturado",[(c,"amount"),(q,"amount")],Decimal)
     compare(6,"Número de cuenta de cobro",[(c,"invoice_number"),(q,"invoice_number")])
     compare(7,"Número de planilla",[(r,"pila_number"),(p,"pila_number")])
@@ -131,6 +138,12 @@ def evaluate(docs, pages, crp=None, monthly=None, review_date=None):
     end_facts=[d.get("end") for d in (c,r,q) if d.get("end")]
     start=parse_date(c.get("start") or r.get("start") or "")
     end=parse_date(r.get("end") or c.get("end") or "")
+    base_record=(secop or {}).get("record", {})
+    from .secop import base_date
+    base_start=base_date(base_record.get("start", ""))
+    base_end=base_date(base_record.get("end", ""))
+    start=base_start or start
+    end=base_end or end
     cutoff=parse_date(r.get("period_end") or q.get("period_end") or "")
     pct=Decimal(r.get("progress")) if r.get("progress") else None
     date_problems=[]; calc=None
@@ -143,10 +156,10 @@ def evaluate(docs, pages, crp=None, monthly=None, review_date=None):
         if pct is None: date_problems.append("No se encontró el porcentaje de avance reportado.")
         elif abs(pct-calc)>5: date_problems.append("El avance reportado difiere en más de 5 puntos porcentuales.")
     else: date_problems.append("Falta la fecha de corte.")
-    if len(start_facts)<2 or len(end_facts)<2: date_problems.append("Las fechas no están corroboradas en dos documentos.")
+    if (not base_start and len(start_facts)<2) or (not base_end and len(end_facts)<2): date_problems.append("Las fechas no están corroboradas en dos documentos.")
     if len(set(start_facts))>1 or len(set(end_facts))>1: date_problems.append("Hay fechas contractuales contradictorias.")
     message=f"Inicio: {start or 'NO ENCONTRADO'}. Fin: {end or 'NO ENCONTRADO'}. Corte: {cutoff or 'NO ENCONTRADO'}. "
-    if calc is not None: message+=f"Avance calculado con fechas extraídas: {calc:.2f}%. Reportado: {pct if pct is not None else 'NO ENCONTRADO'}%. "
+    if calc is not None: message+=f"Avance calculado con fechas de SECOP cuando están disponibles (prioritarias): {calc:.2f}%. Reportado: {pct if pct is not None else 'NO ENCONTRADO'}%. "
     add(12,"Vigencia y porcentaje de avance",not date_problems,message+" ".join(date_problems),
         "Confirmar las fechas contractuales antes de usar el cálculo de avance." if date_problems else "",
         [(d,k) for d in (c,r) for k in ("start","end")]+[(r,"progress"),(r,"period_end")],
