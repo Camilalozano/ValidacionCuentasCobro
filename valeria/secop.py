@@ -117,10 +117,17 @@ def compare_with_base(docs, base):
     details.append('Se aceptan diferencias de caja, tildes, puntuación, orden y una omisión de nombre/apellido con al menos tres componentes coincidentes. La firma requiere inspección visual (regla 19).')
     results.append(finding('10', 'Supervisor frente a SECOP', details, diff, missing, evidence))
     details, evidence, diff, missing = [], [], False, False
+    differences, pending, matches = [], [], []
+    labels = {'name': 'Nombre del contratista', 'cc': 'Documento del contratista',
+              'start': 'Fecha de inicio', 'end': 'Fecha de terminación', 'object': 'Objeto contractual'}
+    def display(key, value):
+        parsed = base_date(value) if key in ('start', 'end') else None
+        return parsed.strftime('%d/%m/%Y') if parsed else value or 'SIN DATO'
     for key in ('name', 'cc', 'start', 'end', 'object'):
         expected = record.get(key, '')
         expected_value = base_date(expected) if key in ('start', 'end') else expected
-        details.append(f"Base SECOP · {COLUMNS[key]}: {expected or 'SIN DATO'}")
+        if not expected_value:
+            pending.append(f"{labels[key]}: la base SECOP no tiene un dato válido para comparar.")
         missing |= not expected_value
         kinds = ('certificado', 'informe', 'planilla', 'cuenta') if key in ('name', 'cc') else ('informe',) if key == 'object' else ('certificado', 'informe')
         found = False
@@ -143,12 +150,26 @@ def compare_with_base(docs, base):
                     same = clean(value) == clean(expected)
                 mismatch = bool(expected_value and not same)
                 diff |= mismatch
-                details.append(f"{LABELS[kind]} · {key}: {value}" + (' · DIFERENCIA: prima SECOP' if mismatch else ' · coincide' if expected_value else ' · sin referencia'))
+                if mismatch:
+                    action = ('Revisar la diferencia de redacción frente al objeto registrado en SECOP.'
+                              if key == 'object' else f"Corregir {labels[key].lower()} en {LABELS[kind]} según SECOP.")
+                    differences.append(f"{labels[key]}: NO COINCIDE\n"
+                                       f"Documento: {LABELS[kind]}.\n"
+                                       f"PDF: {display(key, value)}.\n"
+                                       f"Base SECOP (valor correcto): {display(key, expected)}.\n"
+                                       f"Acción: {action}")
+                elif expected_value:
+                    matches.append(f"{labels[key]} · {LABELS[kind]}: coincide con SECOP ({display(key, value)}).")
             evidence.extend({'document': LABELS[kind], 'pages': [f.page], 'field': key, 'value': f.value, 'quote': f.quote} for f in doc.fields.get(key, []))
         if not found:
             missing = True
-            details.append(f"PDF · {key}: NO ENCONTRADO")
-    details.append('El objeto se compara por texto normalizado; diferencias de redacción requieren revisión de contenido.')
+            pending.append(f"{labels[key]}: no se encontró en los PDF.")
+    details = (['DIFERENCIAS ENCONTRADAS', '\n\n'.join(differences)] if differences
+               else ['No se encontraron diferencias en los campos comparables.'])
+    if pending:
+        details.extend(['DATOS PENDIENTES', '\n'.join(pending)])
+    if matches:
+        details.extend(['CAMPOS QUE SÍ COINCIDEN', '\n'.join(matches)])
     results.append(finding('20', 'Consistencia de documentos con SECOP', details, diff, missing, evidence))
     q = docs['cuenta']
     raw = record.get('monthly', '')
