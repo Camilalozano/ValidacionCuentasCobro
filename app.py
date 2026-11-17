@@ -84,7 +84,7 @@ st.write("Carga uno o varios PDF. ValerIA los unirá para revisar la cuenta de c
 
 with st.sidebar:
     st.header("Bases de referencia")
-    secop_url=st.text_input("Ruta PAR de la base SECOP",value=secret("ORACLE_PAR_URL"),type="password",help="Consulta automática por contrato del informe. El enlace no se incluye en los reportes.")
+    secop_url=st.text_input("URL de la base SECOP",value=secret("SECOP_CSV_URL") or secret("ORACLE_PAR_URL"),type="password",help="Consulta automática por contrato del informe. El enlace no se incluye en los reportes.")
     st.caption("SECOP prima sobre los PDF. Honorarios inferidos: referencia orientativa; alerta si la diferencia supera el 10 %.")
     crp_data,crp_name=reference_input("Listado CRP (Excel o CSV)","crp_upload","CRP_PATH")
     st.caption("Sin la base CRP, su validación queda como REVISAR. El valor mensual orientativo se consulta automáticamente en SECOP.")
