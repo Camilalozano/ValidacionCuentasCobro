@@ -1,11 +1,30 @@
 import csv
 import io
 import unittest
+from unittest.mock import patch, MagicMock
+from valeria.secop import lookup
 from valeria.secop import REFERENCE, COLUMNS, select_record, name_matches, compare_with_base
 from valeria.models import Document, Page
 from valeria.extract import extract_documents
 
 class SecopTests(unittest.TestCase):
+    def test_azure_lookup(self):
+        url = "https://salagodatosateneadev.blob.core.windows.net/sandbox/base.csv?sig=ficticia"
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.geturl.return_value = url
+        response.read.return_value = (REFERENCE + "\nATENEA-001-2026\n").encode()
+        with patch("valeria.secop.urlopen", return_value=response) as request:
+            result = lookup(url, "001-2026")
+        self.assertNotIn("error", result)
+        self.assertEqual(request.call_args.args[0].full_url, url)
+
+    def test_untrusted_host_rejected(self):
+        with patch("valeria.secop.urlopen") as request:
+            result = lookup("https://salagodatosateneadev.blob.core.windows.net.evil.example/base.csv", "001-2026")
+        self.assertIn("error", result)
+        request.assert_not_called()
+
     def test_names(self):
         self.assertTrue(name_matches("LUCIA ANDREA PEREZ GOMEZ", "Lucía Pérez Gómez"))
         self.assertTrue(name_matches("Gomez Perez Lucia Andrea", "Lucía Andrea Pérez Gómez"))
