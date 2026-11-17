@@ -84,9 +84,9 @@ Las pruebas usan datos ficticios. Cubren normalización, rangos parciales, aport
 
 ## Contraste automático con SECOP
 
-Configurar `ORACLE_PAR_URL` en Secrets de Streamlit. La ruta también puede ingresarse temporalmente en el campo protegido de la barra lateral. Nunca se guarda el enlace PAR en el repositorio ni en los reportes.
+Configurar `SECOP_CSV_URL` en Secrets de Streamlit con la URL SAS de Azure. Esta configuración persiste entre sesiones y reinicios. `ORACLE_PAR_URL` se conserva como alternativa para instalaciones anteriores. Renovar el enlace SAS antes de su vencimiento. La ruta también puede ingresarse temporalmente en el campo protegido de la barra lateral. Nunca se guarda el enlace firmado en el repositorio ni en los reportes.
 
-Cada revisión descarga el CSV de Oracle (máximo 50 MB y 30 segundos de espera de red) y busca el contrato extraído del informe en `referencia_del_contrato (contratos_electronicos)`. No se usan coincidencias parciales de contrato. Los duplicados idénticos en los campos comparados se consolidan; los contradictorios generan REVISAR. Una falla de conexión, referencia ausente o estructura inválida no interrumpe las demás reglas.
+Cada revisión descarga el CSV de Azure u Oracle (máximo 50 MB y 30 segundos de espera de red) y busca el contrato extraído del informe en `referencia_del_contrato (contratos_electronicos)`. No se usan coincidencias parciales de contrato. Los duplicados idénticos en los campos comparados se consolidan; los contradictorios generan REVISAR. Una falla de conexión, referencia ausente o estructura inválida no interrumpe las demás reglas.
 
 - Regla 10: supervisor del certificado y del informe frente a `nombre_supervisor (contratos_electronicos)`. La inspección de firmas permanece en la regla 19.
 - Regla 20: nombre y documento del contratista, fechas contractuales y objeto frente a la base. Se muestran ambos valores y prima SECOP. El objeto se compara por texto normalizado; una diferencia de redacción exige revisión humana.
