@@ -1,4 +1,4 @@
-"""Contraste con SECOP: la URL PAR nunca se incluye en resultados ni errores."""
+"""Contraste con SECOP: la URL nunca se incluye en resultados ni errores."""
 import csv
 import hashlib
 import io
@@ -66,10 +66,10 @@ def lookup(url, reference):
     if not reference:
         return {'error': 'No se extrajo un contrato único del informe de ejecución.'}
     if not url:
-        return {'error': 'Falta configurar la ruta PAR de la base SECOP.'}
+        return {'error': 'Falta configurar la URL de la base SECOP.'}
     parsed = urlparse(url)
-    if parsed.scheme != 'https' or parsed.hostname != 'objectstorage.us-ashburn-1.oraclecloud.com':
-        return {'error': 'La ruta PAR configurada no es válida.'}
+    if parsed.scheme != 'https' or parsed.hostname not in {'objectstorage.us-ashburn-1.oraclecloud.com', 'salagodatosateneadev.blob.core.windows.net'}:
+        return {'error': 'La URL configurada no es válida.'}
     try:
         with urlopen(Request(url, headers={'User-Agent': 'ValerIA/SECOP'}), timeout=30) as response:
             if response.geturl() != url:
@@ -78,7 +78,7 @@ def lookup(url, reference):
         if len(data) > 50 * 1024 * 1024:
             return {'error': 'La base SECOP supera 50 MB.'}
     except Exception:
-        return {'error': 'No se pudo consultar SECOP. Revise la conexión y la vigencia de la ruta PAR.'}
+        return {'error': 'No se pudo consultar SECOP. Revise la conexión y la vigencia de la URL.'}
     try:
         return select_record(data, reference)
     except Exception as exc:
@@ -92,7 +92,7 @@ def compare_with_base(docs, base):
     """Reglas adicionales 20/21 y reemplazo de la regla 10, sin modificar los PDF."""
     error = base.get('error')
     record = base.get('record', {})
-    provenance = {'source': 'Base SECOP · Oracle', 'quote':
+    provenance = {'source': 'Base SECOP', 'quote':
                   f"Contrato {base.get('reference', '')}; filas {base.get('rows', [])}; consulta {base.get('consulted_at', '')}; SHA-256 {base.get('sha256', '')}"}
     def finding(rule, title, details, differences=False, missing=False, evidence=()):
         return Finding(rule, title, 'REVISAR' if differences or missing else 'VALIDADO',
